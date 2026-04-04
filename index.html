@@ -62,12 +62,30 @@
     <script>
         const audios = document.querySelectorAll('audio');
         audios.forEach(audio => {
+            // 当一个音频播放时，暂停其他音频
             audio.addEventListener('play', () => {
                 audios.forEach(otherAudio => {
-                    if (otherAudio !== audio) {
+                    if (otherAudio !== audio && !otherAudio.paused) {
                         otherAudio.pause();
                     }
                 });
+            });
+
+            // 当音频暂停时（包括手动暂停或其他音频播放导致的暂停），彻底停止数据流加载
+            audio.addEventListener('pause', () => {
+                if (!audio.ended) { // 播放结束触发的暂停不重复处理
+                    const currentTime = audio.currentTime;
+                    const currentSrc = audio.src;
+                    
+                    // 核心逻辑：重置 src 并 load 会强制浏览器关闭 206 连接
+                    audio.pause();
+                    audio.src = '';
+                    audio.load();
+                    
+                    // 恢复 src 和进度，由于 preload="none"，此时不会触发网络请求
+                    audio.src = currentSrc;
+                    audio.currentTime = currentTime;
+                }
             });
         });
     </script>
